@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  nzwalks.api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - nzwalks_data:/app/data
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+
+volumes:
+  nzwalks_data:

@@ -1,4 +1,4 @@
-using NZWalks.API.Data;
+﻿using NZWalks.API.Data;
 using NZWalks.API.Controllers;
 using Microsoft.EntityFrameworkCore;
 using NZWalks.API.Repositories;
@@ -8,11 +8,13 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.OpenApi.Models;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "NZ Walks API", Version = "v1" });
@@ -39,30 +41,24 @@ builder.Services.AddSwaggerGen(options =>
             },
             new List<string>()
         }
-    }); 
+    });
 });
 
+
+// SQL Server kullan (normal development)
 builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionString"));
-});
+    options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionString")));
 
 builder.Services.AddDbContext<AppAuthDbContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksAuthConnectionString")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksAuthConnectionString")));
 
 builder.Services.AddScoped<IRegionRepository, SQLRegionRepository>();
 builder.Services.AddScoped<IWalkRepository, SQLWalkRepository>();
-builder.Services.AddScoped<ITokenRepository, TokenRepository>();    
+builder.Services.AddScoped<ITokenRepository, TokenRepository>();
+builder.Services.AddScoped<IImageRepository, LocalImageRepository>();
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<AutoMapperProfiles>());
-
 builder.Services.AddScoped<RegionsController>();
 
-
-// Identity Services
-// AddRoles: allows us to use roles in our application
-// AddTokenProvider: allows us to generate tokens for actions like email confirmation and password reset
-// AddEntityFrameworkStores: specifies the DbContext to use for Identity
-// AddDefaultTokenProviders: adds default token providers for generating tokens
 builder.Services.AddIdentityCore<IdentityUser>()
     .AddRoles<IdentityRole>()
     .AddTokenProvider<DataProtectorTokenProvider<IdentityUser>>("NZWalks")
@@ -80,7 +76,7 @@ builder.Services.Configure<IdentityOptions>(options =>
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options => 
+    .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -102,12 +98,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors(builder =>
+{
+    builder.AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader();
+});
+
 app.UseHttpsRedirection();
-
-app.UseAuthentication();    
-
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
