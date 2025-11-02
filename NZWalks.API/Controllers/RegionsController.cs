@@ -16,12 +16,16 @@ namespace NZWalks.API.Controllers;
 
         private readonly IRegionRepository regionRepository;
         private readonly IMapper mapper;
+        private readonly ILogger<RegionsController> logger;
 
     public RegionsController(AppDbContext dbContext, IRegionRepository regionRepository, 
-        IMapper mapper)
+        IMapper mapper, 
+        ILogger<RegionsController> logger
+        )
     {
         this.regionRepository = regionRepository;
         this.mapper = mapper;
+        this.logger = logger;
     }
     [HttpGet]
     [Authorize(Roles = "User")]
@@ -35,6 +39,7 @@ namespace NZWalks.API.Controllers;
             return NotFound();
         }
 
+        logger.LogInformation("Retrieved {Count} regions from the database.", regions.Count());
 
         return Ok(mapper.Map<List<RegionDTO>>(regions));
         }
